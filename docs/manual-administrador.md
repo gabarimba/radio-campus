@@ -6,8 +6,8 @@ Visita `/admin` e inicia sesión con la cuenta creada en Supabase Auth. El usuar
 
 ## Catálogo y rondas
 
-1. Agrega título, artista, proveedor y metadatos. Asocia etiquetas en forma `categoria:nombre`, separadas por coma. Las categorías son `genero`, `energia`, `ambiente`, `tematica` y `restriccion`.
-2. Verifica la licencia de la grabación y guarda una referencia institucional. Habilitar la canción exige marcar tanto verificación como autorización. El motor siempre excluye contenido explícito.
+1. Busca canciones en Jamendo e impórtalas desde la sección de catálogo. El buscador limita resultados a pistas Creative Commons sin cláusula NC; la pista importada queda desactivada hasta que revises su licencia y la autorización de la grabación. También puedes cargar una fuente institucional.
+2. Al habilitar una canción confirmas que revisaste licencia y permisos del fonograma para este uso. Asigna etiquetas `categoria:nombre`, separadas por coma; las categorías son `genero`, `energia`, `ambiente`, `tematica` y `restriccion`. El motor excluye contenido explícito.
 3. Crea reglas con prioridad, evento/franja horaria/temperatura y etiqueta preferida. Una regla más prioritaria reemplaza preferencias de menor prioridad.
 4. Registra eventos con fechas de inicio y fin. El nombre exacto del evento se usa en la regla contextual correspondiente.
 5. Define duración, desempate, límites, ventana de repetición, ciudad y coordenadas en **Contexto**. Para simular clima en una demostración, establece una temperatura en °C; deja el campo vacío para volver al dato de Open-Meteo.
@@ -15,7 +15,7 @@ Visita `/admin` e inicia sesión con la cuenta creada en Supabase Auth. El usuar
 
 ## Anuncios
 
-Redacta y programa el aviso, usa la vista previa de voz del navegador y apruébalo tras revisar el texto. En esta versión la aprobación queda persistida, pero no dispara TTS ni inserta el anuncio entre canciones; ese flujo requiere elegir y configurar proveedor TTS y reproductor autorizados.
+Redacta el aviso y escucha la vista previa del navegador antes de aprobarlo. El navegador principal reclama un anuncio aprobado y vigente al terminar cada canción, lo locuta con SpeechSynthesis y después continúa con la cola. No se crea un archivo de audio; el navegador debe seguir abierto.
 
 ## Listas y respaldos
 

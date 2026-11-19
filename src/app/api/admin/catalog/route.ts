@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
   if (!admin) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   const parsed = songSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Revisa los campos de la canción.", fields: parsed.error.flatten() }, { status: 400 });
+  if (parsed.data.autorizada && parsed.data.proveedor !== "jamendo") return NextResponse.json({ error: "Solo se puede habilitar reproducción para el adaptador Jamendo conectado." }, { status: 400 });
   const { etiquetas, ...songData } = parsed.data;
   const { data, error } = await supabaseAdmin().from("canciones").insert(songData).select().single();
   if (error) return NextResponse.json({ error: "No se pudo guardar la canción." }, { status: 400 });
@@ -44,6 +45,10 @@ export async function PATCH(request: NextRequest) {
   if (!body?.id || !z.string().uuid().safeParse(body.id).success || !body.changes) return NextResponse.json({ error: "Falta un identificador y cambios válidos." }, { status: 400 });
   const parsed = songSchema.partial().safeParse(body.changes);
   if (!parsed.success) return NextResponse.json({ error: "Hay cambios inválidos." }, { status: 400 });
+  if (parsed.data.autorizada === true) {
+    const { data: current } = await supabaseAdmin().from("canciones").select("proveedor").eq("id", body.id).maybeSingle();
+    if ((parsed.data.proveedor ?? current?.proveedor) !== "jamendo") return NextResponse.json({ error: "Solo se puede habilitar reproducción para el adaptador Jamendo conectado." }, { status: 400 });
+  }
   const { etiquetas, ...changes } = parsed.data;
   const { data, error } = await supabaseAdmin().from("canciones").update({ ...changes, actualizada_en: new Date().toISOString() }).eq("id", body.id).select().single();
   if (error) return NextResponse.json({ error: "No se pudo actualizar la canción." }, { status: 400 });

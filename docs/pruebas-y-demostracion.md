@@ -8,12 +8,12 @@
 
 Verificados el 19 de noviembre de 2026 en Node.js 24.20.0:
 
-- `npm test`: **5 pruebas aprobadas**.
+- `npm test`: **10 pruebas aprobadas** (selección contextual y filtro de licencias CC).
 - `npm run lint`: **aprobado**.
 - `npm run build`: **aprobado**; las rutas `/`, `/votar`, `/admin` y endpoints API se generaron.
 - `npm audit`: **0 vulnerabilidades**.
 - Comprobación HTTP de `/`, `/votar` y `/admin`: **200** cada una.
-- No se probó integración Supabase, cron de cierre real con datos, voto desde varios dispositivos, audio autorizado ni publicación HTTPS porque no hay credenciales/cuenta conectadas.
+- No se probó integración Supabase, cron de cierre real con datos, voto desde varios dispositivos, búsqueda/stream Jamendo con un Client ID ni publicación HTTPS porque faltan credenciales de Supabase y Jamendo.
 
 La migración define funciones SQL transaccionales para rechazar duplicados, voto posterior al cierre, opción que no pertenece a la ronda y exceso de votos por IP. Esas funciones aún requieren una verificación integrada con un proyecto Supabase real.
 
@@ -26,7 +26,7 @@ La migración define funciones SQL transaccionales para rechazar duplicados, vot
 5. Cambia la temperatura simulada y después activa una regla de evento de exámenes con energía baja; abre nuevas rondas y compara canciones y razones.
 6. Ejecuta una ronda de prueba con duración corta, una ronda empatada y otra sin votos; documenta resultados.
 7. Exporta y restaura el respaldo de configuración.
-8. Muestra la limitación del proveedor de música y TTS hasta que universidad configure una fuente con permisos.
+8. Configura Jamendo, inicia el audio en la pantalla principal y demuestra atribución, fin de pista y locución aprobada con SpeechSynthesis.
 
 ## Capturas sugeridas
 
@@ -37,4 +37,4 @@ La migración define funciones SQL transaccionales para rechazar duplicados, vot
 - Mensajes de voto duplicado, ronda cerrada y falla de clima.
 - Registro del ganador y resultado persistido.
 
-Las capturas y prueba de extremo a extremo deben tomarse después de configurar Supabase y la fuente de audio; todavía no existen evidencias de ejecución real en servicios externos.
+Las capturas y prueba de extremo a extremo deben tomarse después de configurar Supabase y Jamendo; todavía no existen evidencias de ejecución real en servicios externos.

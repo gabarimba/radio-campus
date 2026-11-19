@@ -14,12 +14,13 @@
 
 5. En Database → Publications, habilita broadcast según la configuración del proyecto. La app envía eventos por canal Realtime `radio-publica`; confirma que clientes públicos puedan suscribirse a Broadcast.
 6. Copia Project URL y la clave pública. Copia `service_role` solo en el entorno servidor.
+7. Registra una aplicación Jamendo API v3 de solo lectura en [Jamendo for Developers](https://devportal.jamendo.com/) y configura su Client ID como `JAMENDO_CLIENT_ID`.
 
 ## B. Ejecutar en local
 
 1. Instala Node.js 20+.
 2. Copia `.env.example` a `.env.local`.
-3. Completa `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` y `CRON_SECRET` con valores propios.
+3. Completa `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` y `JAMENDO_CLIENT_ID` con valores propios.
 4. Ejecuta `npm install`, `npm test`, `npm run lint`, `npm run build` y `npm run dev`.
 5. Visita `/admin`, `/` y `/votar`.
 
@@ -28,7 +29,7 @@
 1. Publica el contenido de `sistema-radio-campus/` en un repositorio Git de la universidad.
 2. Crea un Web Service desde ese repositorio y elige Node.
 3. Build command: `npm ci && npm run build`. Start command: `npm run start`.
-4. Configura todas las variables de `.env.example` en el entorno privado del servicio. Añade `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` y `CRON_SECRET`; no introduzcas claves privadas en el repositorio.
+4. Configura todas las variables de `.env.example` en el entorno privado del servicio, incluido `JAMENDO_CLIENT_ID`; no introduzcas credenciales en el repositorio.
 5. Configura el dominio HTTPS y establece el Site URL de Supabase Auth al dominio final; agrega las URLs de callback que indique Supabase.
 6. Mantén una instancia activa y persistente para que `src/instrumentation.ts` revise cierres cada cinco segundos. La disponibilidad de planes y precios debe revisarse con Render al desplegar.
 7. Prueba desde dos dispositivos en redes distintas: abrir ronda, votar, rechazar repetición, observar cierre, refrescar y consultar resultado.

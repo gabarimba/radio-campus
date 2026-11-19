@@ -275,10 +275,31 @@ begin
 end;
 $$;
 
+-- Reserva un anuncio aprobado y vigente únicamente cuando el reproductor queda libre.
+create or replace function public.reservar_anuncio_vigente()
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_anuncio public.anuncios%rowtype;
+begin
+  select * into v_anuncio from public.anuncios
+  where estado = 'aprobado' and inicia_en <= now() and termina_en > now()
+    and (ultima_reproduccion is null or ultima_reproduccion + make_interval(mins => frecuencia_minutos) <= now())
+  order by coalesce(ultima_reproduccion, '-infinity'::timestamptz), inicia_en, creado_en
+  for update skip locked limit 1;
+  if not found then return jsonb_build_object('anuncio', null); end if;
+  update public.anuncios set ultima_reproduccion = now() where id = v_anuncio.id;
+  insert into public.historial_reproduccion(tipo, anuncio_id, detalle)
+  values ('anuncio', v_anuncio.id, jsonb_build_object('titulo', v_anuncio.titulo));
+  return jsonb_build_object('id', v_anuncio.id, 'titulo', v_anuncio.titulo, 'texto', v_anuncio.texto);
+end;
+$$;
+
 revoke all on function public.registrar_voto(uuid, uuid, text, text, integer) from public, anon, authenticated;
 revoke all on function public.cerrar_ronda_vencida(uuid) from public, anon, authenticated;
+revoke all on function public.reservar_anuncio_vigente() from public, anon, authenticated;
 grant execute on function public.registrar_voto(uuid, uuid, text, text, integer) to service_role;
 grant execute on function public.cerrar_ronda_vencida(uuid) to service_role;
+grant execute on function public.reservar_anuncio_vigente() to service_role;
 
 -- RLS: la aplicación pública solo consulta estado y canciones aprobadas; mutaciones son servidor.
 alter table public.perfiles_admin enable row level security;
