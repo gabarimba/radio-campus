@@ -40,6 +40,7 @@ export async function GET() {
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Error al consultar la programación pública:", error);
+    if (error instanceof Error && error.message.includes("Falta configurar Supabase")) return NextResponse.json({ error: "Supabase aún no está configurado en el servidor de Radio Campus." }, { status: 503, headers: { "Cache-Control": "no-store" } });
     return NextResponse.json({ error: "No se pudo consultar la programación." }, { status: 503 });
   }
 }

@@ -17,6 +17,7 @@ type JamendoChoice = { id: string; title: string; artist: string; duration: numb
 type AdminStats = { totals: { canciones: number; cancionesAutorizadas: number; rondas: number; votos: number }; rounds: { id: string; estado: string; creada_en: string; ganador_id: string | null; resultado: Record<string, unknown>; totalVotos: number }[]; queue: { id: string; tipo: string; estado: string; canciones: { titulo: string; artista: string } | null }[]; history: { id: string; tipo: string; ocurrido_en: string; canciones: { titulo: string; artista: string } | null; anuncios: { titulo: string } | null }[] };
 
 export default function AdminPage() {
+  const supabaseConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   const [session, setSession] = useState<Session | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [data, setData] = useState<AdminData | null>(null);
@@ -29,7 +30,13 @@ export default function AdminPage() {
   const [jamendoQuery, setJamendoQuery] = useState("");
   const [jamendoTracks, setJamendoTracks] = useState<JamendoChoice[]>([]);
 
-  useEffect(() => { const supabase = supabaseBrowser(); void supabase.auth.getSession().then(({ data: result }) => setSession(result.session)); const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => setSession(next)); return () => listener.subscription.unsubscribe(); }, []);
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    const supabase = supabaseBrowser();
+    void supabase.auth.getSession().then(({ data: result }) => setSession(result.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    return () => listener.subscription.unsubscribe();
+  }, [supabaseConfigured]);
   const token = session?.access_token;
   const api = useCallback(async (path: string, init?: RequestInit) => {
     const response = await fetch(path, { ...init, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...init?.headers } });
@@ -48,8 +55,12 @@ export default function AdminPage() {
   const schedulePaused = config["programacion_pausada"] === true;
   async function login(event: FormEvent) {
     event.preventDefault(); setBusy(true); setMessage("");
-    const { error } = await supabaseBrowser().auth.signInWithPassword({ email, password });
-    setMessage(error ? "No se pudo iniciar sesión. Revisa tus datos y el acceso al proyecto." : "Sesión iniciada."); setBusy(false);
+    try {
+      const { error } = await supabaseBrowser().auth.signInWithPassword({ email, password });
+      setMessage(error ? "No se pudo iniciar sesión. Revisa tus datos y el acceso al proyecto." : "Sesión iniciada.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudo conectar con Supabase.");
+    } finally { setBusy(false); }
   }
   async function addSong(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const formElement = event.currentTarget; setBusy(true); setMessage(""); const form = new FormData(formElement);
@@ -137,6 +148,7 @@ export default function AdminPage() {
     finally { input.value = ""; }
   }
 
+  if (!supabaseConfigured) return <main className="wrap"><header className="topbar"><Link className="brand" href="/">RADIO <b>CAMPUS</b></Link><nav className="nav"><Link href="/">Pantalla pública</Link></nav></header><section className="panel"><div className="eyebrow">Configuración pendiente</div><h1>Administración</h1><p className="muted">Este sitio todavía no está conectado a Supabase. Faltan la URL del proyecto y la clave pública; el servidor también necesita la clave service role.</p><p className="banner">Agrega estas variables al proyecto de Vercel y vuelve a desplegar: <code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> y <code>SUPABASE_SERVICE_ROLE_KEY</code>.</p><Link className="btn secondary" href="/">Volver a Radio Campus</Link></section></main>;
   if (!session) return <main className="wrap"><header className="topbar"><Link className="brand" href="/">RADIO <b>CAMPUS</b></Link><nav className="nav"><Link href="/">Pantalla pública</Link></nav></header><section className="panel"><div className="eyebrow">Acceso protegido</div><h1>Administración</h1><p className="muted">Inicia sesión con una cuenta activa en Supabase Auth y un perfil autorizado en perfiles_admin.</p><form className="card form" onSubmit={(e) => void login(e)}><input type="email" placeholder="Correo institucional" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required/><input type="password" placeholder="Contraseña" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required/><button className="btn" disabled={busy}>Iniciar sesión</button>{message && <div className="msg">{message}</div>}</form></section></main>;
 
   const tabs = [["catalogo","Catálogo"],["listas","Listas y etiquetas"],["contexto","Contexto"],["eventos","Eventos"],["anuncios","Anuncios"],["supervision","Supervisión"]];

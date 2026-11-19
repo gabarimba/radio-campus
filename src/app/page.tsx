@@ -11,14 +11,18 @@ type State = { serverTime: string; round: RoundState | null; playback: { state: 
 
 export default function PublicScreen() {
   const [state, setState] = useState<State | null>(null);
+  const [connectionError, setConnectionError] = useState("");
   const [qr, setQr] = useState("");
   const [left, setLeft] = useState(0);
   const [radioStarted, setRadioStarted] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   async function refresh() {
-    try { const response = await fetch("/api/public/state", { cache: "no-store" }); if (response.ok) setState(await response.json()); }
-    catch { /* La próxima consulta recupera conexión. */ }
+    try {
+      const response = await fetch("/api/public/state", { cache: "no-store" });
+      if (response.ok) { setState(await response.json()); setConnectionError(""); }
+      else { const body = await response.json().catch(() => ({})); setConnectionError(body.error || `Error del servidor (${response.status}).`); }
+    } catch { setConnectionError("No se pudo conectar con el servidor."); }
   }
   useEffect(() => {
     const initial = setTimeout(() => void refresh(), 0); const id = setInterval(refresh, 8000);
@@ -79,8 +83,8 @@ export default function PublicScreen() {
           {round?.status === "abierta" && <div className="qr-card"><div className="qr-box">{qr && <Image src={qr} alt="Código QR para abrir la votación" width={90} height={90} unoptimized/>}</div><p>Escanea el QR con la cámara del celular y elige una canción. La ronda cierra en el servidor.</p></div>}
         </article>
       </section>
-      <div className="banner"><b>Estado de reproducción:</b> {state?.playback.message ?? "Conectando con el servidor…"}</div>
-      <footer className="footer"><span>Radio Campus · Sistema universitario participativo</span><span>Conexión: {state ? "consultando programación" : "reconectando"} · El cierre de ronda lo decide el servidor</span></footer>
+      <div className="banner"><b>Estado de reproducción:</b> {connectionError || state?.playback.message || "Conectando con el servidor…"}</div>
+      <footer className="footer"><span>Radio Campus · Sistema universitario participativo</span><span>Conexión: {connectionError ? "sin conexión al servidor" : state ? "consultando programación" : "reconectando"} · El cierre de ronda lo decide el servidor</span></footer>
     </div>
   </main>;
 }
