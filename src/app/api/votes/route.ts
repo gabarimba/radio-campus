@@ -14,10 +14,13 @@ export async function POST(request: NextRequest) {
   const ipHash = createHmac("sha256", secret).update(rawIp).digest("hex");
   const deviceHash = createHmac("sha256", secret).update(parsed.data.deviceToken).digest("hex");
   try {
-    const { data, error } = await supabaseAdmin().rpc("registrar_voto", {
+    const db = supabaseAdmin();
+    const { data: configuredLimit } = await db.from("configuracion").select("valor").eq("clave", "limite_votos_ip_minuto").maybeSingle();
+    const maxVotes = Number(configuredLimit?.valor ?? process.env.VOTE_RATE_LIMIT_PER_MINUTE ?? 10);
+    const { data, error } = await db.rpc("registrar_voto", {
       p_ronda: parsed.data.roundId, p_cancion: parsed.data.songId,
       p_dispositivo_hash: deviceHash, p_ip_hash: ipHash,
-      p_limite_ip: Number(process.env.VOTE_RATE_LIMIT_PER_MINUTE || 10),
+      p_limite_ip: maxVotes,
     });
     if (error) throw error;
     if (!data?.ok) {

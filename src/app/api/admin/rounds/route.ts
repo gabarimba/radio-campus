@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     const coordinates = settings.coordenadas as { lat?: number; lon?: number } | undefined;
     const lat = Number(coordinates?.lat ?? process.env.DEFAULT_LATITUDE ?? 19.4326);
     const lon = Number(coordinates?.lon ?? process.env.DEFAULT_LONGITUDE ?? -99.1332);
-    const temperature = await obtenerTemperatura(lat, lon);
+    const simulatedTemperature = settings.temperatura_simulada;
+    const temperature = typeof simulatedTemperature === "number" ? simulatedTemperature : await obtenerTemperatura(lat, lon);
     const timezone = String(settings.zona_horaria ?? process.env.DEFAULT_TIMEZONE ?? "America/Mexico_City");
     const hour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: timezone }).format(new Date()));
     type SongRow = Omit<Cancion, "etiquetas"> & { cancion_etiquetas: { etiquetas: { categoria: string; nombre: string } | null }[] };
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     const seconds = Number(settings.duracion_ronda_segundos ?? 240);
     const started = new Date();
     const closes = new Date(started.getTime() + seconds * 1000);
-    const { data: round, error } = await db.from("rondas").insert({ estado: "abierta", inicia_en: started.toISOString(), cierra_en: closes.toISOString(), duracion_segundos: seconds, regla_desempate: settings.regla_desempate ?? "prioridad", contexto: { ...context, weatherFallback: temperature === null, regla: rules?.[0]?.nombre ?? "contexto base" } }).select("id").single();
+    const { data: round, error } = await db.from("rondas").insert({ estado: "abierta", inicia_en: started.toISOString(), cierra_en: closes.toISOString(), duracion_segundos: seconds, regla_desempate: settings.regla_desempate ?? "prioridad", contexto: { ...context, temperaturaSimulada: typeof simulatedTemperature === "number", weatherFallback: temperature === null, regla: rules?.[0]?.nombre ?? "contexto base" } }).select("id").single();
     if (error) throw error;
     const { error: candidateError } = await db.from("candidatas_ronda").insert(selection.map((item, i) => ({ ronda_id: round.id, cancion_id: item.cancion.id, posicion: i + 1, puntuacion: item.puntuacion, razones: item.razones })));
     if (candidateError) { await db.from("rondas").delete().eq("id", round.id); throw candidateError; }

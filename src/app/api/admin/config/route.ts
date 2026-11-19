@@ -11,6 +11,7 @@ const patchSchema = z.object({
   regla_desempate: z.enum(["aleatorio", "prioridad", "primera_opcion"]).optional(),
   limite_votos_ip_minuto: z.number().int().min(1).max(100).optional(),
   ventana_repeticion: z.number().int().min(0).max(100).optional(),
+  temperatura_simulada: z.number().min(-50).max(60).nullable().optional(),
   programacion_pausada: z.boolean().optional(),
   proveedor_reproduccion: z.enum(["deshabilitado", "youtube-iframe"]).optional(),
 });
@@ -40,7 +41,7 @@ export async function PATCH(request: NextRequest) {
     const coordinates = old?.valor as { lat?: number; lon?: number } | null;
     settings.coordenadas = { lat: values.latitud ?? Number(coordinates?.lat ?? 19.4326), lon: values.longitud ?? Number(coordinates?.lon ?? -99.1332) };
   }
-  for (const key of ["duracion_ronda_segundos", "regla_desempate", "limite_votos_ip_minuto", "ventana_repeticion", "programacion_pausada", "proveedor_reproduccion"] as const) if (values[key] !== undefined) settings[key] = values[key];
+  for (const key of ["duracion_ronda_segundos", "regla_desempate", "limite_votos_ip_minuto", "ventana_repeticion", "temperatura_simulada", "programacion_pausada", "proveedor_reproduccion"] as const) if (values[key] !== undefined) settings[key] = values[key];
   const rows = Object.entries(settings).map(([clave, valor]) => ({ clave, valor: JSON.stringify(valor), actualizada_en: new Date().toISOString(), actualizada_por: admin.id }));
   if (rows.length) {
     const { error } = await supabaseAdmin().from("configuracion").upsert(rows, { onConflict: "clave" });

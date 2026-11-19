@@ -329,6 +329,7 @@ insert into public.configuracion(clave, valor) values
 ('regla_desempate', '"prioridad"'),
 ('limite_votos_ip_minuto', '10'),
 ('ventana_repeticion', '12'),
+('temperatura_simulada', 'null'),
 ('programacion_pausada', 'false'),
 ('proveedor_reproduccion', '"deshabilitado"'),
 ('canciones_respaldo', '[]')

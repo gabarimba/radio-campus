@@ -10,7 +10,7 @@ Visita `/admin` e inicia sesión con la cuenta creada en Supabase Auth. El usuar
 2. Verifica la licencia de la grabación y guarda una referencia institucional. Habilitar la canción exige marcar tanto verificación como autorización. El motor siempre excluye contenido explícito.
 3. Crea reglas con prioridad, evento/franja horaria/temperatura y etiqueta preferida. Una regla más prioritaria reemplaza preferencias de menor prioridad.
 4. Registra eventos con fechas de inicio y fin. El nombre exacto del evento se usa en la regla contextual correspondiente.
-5. Define duración, desempate, límites, ventana de repetición, ciudad y coordenadas en **Contexto**.
+5. Define duración, desempate, límites, ventana de repetición, ciudad y coordenadas en **Contexto**. Para simular clima en una demostración, establece una temperatura en °C; deja el campo vacío para volver al dato de Open-Meteo.
 6. Pulsa **Abrir ronda**. Si no hay dos candidatas autorizadas, el servidor no abre la ronda y muestra el motivo. La pantalla pública muestra el QR y el tiempo restante.
 
 ## Anuncios

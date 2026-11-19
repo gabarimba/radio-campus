@@ -23,7 +23,7 @@ La migración define funciones SQL transaccionales para rechazar duplicados, vot
 2. Crea regla de energía moderada; abre ronda y muestra la pantalla panorámica.
 3. Escanea QR con dos móviles y emite votos. Recarga la pantalla pública para demostrar persistencia y observa la actualización en vivo.
 4. Intenta votar de nuevo desde el mismo navegador; debe rechazarse.
-5. Cambia a una regla de evento de exámenes con energía baja; abre nueva ronda y compara canciones y razones.
+5. Cambia la temperatura simulada y después activa una regla de evento de exámenes con energía baja; abre nuevas rondas y compara canciones y razones.
 6. Ejecuta una ronda de prueba con duración corta, una ronda empatada y otra sin votos; documenta resultados.
 7. Exporta y restaura el respaldo de configuración.
 8. Muestra la limitación del proveedor de música y TTS hasta que universidad configure una fuente con permisos.
