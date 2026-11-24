@@ -12,7 +12,19 @@ export async function GET(request: NextRequest) {
     const licenseUrl = extraerLicenciaCreativeCommons(song.notas_derechos ?? undefined);
     if (!permiteEmisionNoComercial(licenseUrl ?? undefined)) return NextResponse.json({ error: "La pista no tiene una licencia admitida registrada." }, { status: 403 });
     const streamUrl = await resolverStreamJamendo(id);
-    return NextResponse.redirect(streamUrl, { status: 302, headers: { "Cache-Control": "no-store" } });
+    const range = request.headers.get("range");
+    const upstream = await fetch(streamUrl, {
+      ...(range ? { headers: { Range: range } } : {}),
+      cache: "no-store",
+    });
+    if (!upstream.ok && upstream.status !== 416) throw new Error(`El stream Jamendo respondió ${upstream.status}.`);
+
+    const headers = new Headers({ "Cache-Control": "no-store" });
+    for (const name of ["accept-ranges", "content-length", "content-range", "content-type", "etag", "last-modified"]) {
+      const value = upstream.headers.get(name);
+      if (value) headers.set(name, value);
+    }
+    return new Response(upstream.body, { status: upstream.status, headers });
   } catch (error) {
     console.error("Fallo al resolver stream Jamendo:", error);
     return NextResponse.json({ error: "No se pudo resolver el stream musical." }, { status: 503 });
