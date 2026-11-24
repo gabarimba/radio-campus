@@ -6,14 +6,16 @@
 
 ## Resultados de ejecución local
 
-Verificados el 19 de noviembre de 2026 en Node.js 24.20.0:
+Verificados el 24 de noviembre de 2026 en el entorno local:
 
-- `npm test`: **10 pruebas aprobadas** (selección contextual y filtro de licencias CC).
+- `npm test`: **12 pruebas aprobadas** (selección contextual y extracción de enlaces de licencias CC).
 - `npm run lint`: **aprobado**.
 - `npm run build`: **aprobado**; las rutas `/`, `/votar`, `/admin` y endpoints API se generaron.
-- `npm audit`: **0 vulnerabilidades**.
-- Comprobación HTTP de `/`, `/votar` y `/admin`: **200** cada una.
-- No se probó integración Supabase, cron de cierre real con datos, voto desde varios dispositivos, búsqueda/stream Jamendo con un Client ID ni publicación HTTPS porque faltan credenciales de Supabase y Jamendo.
+- La comprobación HTTP de producción del 21 de noviembre obtuvo respuesta en `/`, `/votar` y `/api/public/state`; no había ronda activa.
+- En producción, `/admin` mostró una sesión pero las solicitudes administrativas devolvieron `401 No autorizado`; el perfil de esa cuenta se confirmó como `admin` activo.
+- No se probó ronda/voto desde varios dispositivos, búsqueda o stream Jamendo, audio real ni locución entre pistas.
+
+La revisión de dependencias `npm audit` registrada el 19 de noviembre encontró 0 vulnerabilidades; no se volvió a ejecutar el 24 de noviembre.
 
 La migración define funciones SQL transaccionales para rechazar duplicados, voto posterior al cierre, opción que no pertenece a la ronda y exceso de votos por IP. Esas funciones aún requieren una verificación integrada con un proyecto Supabase real.
 

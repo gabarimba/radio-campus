@@ -28,4 +28,4 @@ Se pueden crear y retirar listas, gestionar etiquetas y descargar/subir un respa
 - Si el voto informa ronda cerrada, el reloj del servidor ya venció. No se puede reabrir esa misma ronda.
 - Si el servicio servidor se detiene, al volver consulta y cierra rondas cuyo plazo pasó.
 - Si no se abre una ronda, verifica catálogo autorizado, disponibilidad de dos canciones fuera de la ventana reciente, regla y estado de pausa.
-- Si el login funciona pero la API responde 401, revisa `perfiles_admin.activo` y el rol.
+- Si el login funciona pero la API responde 401, confirma primero que el UUID de `auth.users` coincide con `perfiles_admin.id`, que el perfil está activo y que tiene rol `admin` u `operador`. Si eso está correcto, comprueba que la sesión/JWT y las variables públicas del deployment pertenezcan al mismo proyecto Supabase; revisa los registros de servidor por el motivo de validación. Nunca copies el JWT ni la clave `service_role` a tickets, capturas o chats.
