@@ -30,7 +30,7 @@ El `401` no se ha atribuido a una causa única. El rol de la cuenta ya fue compr
 | Persistencia de ajustes y catálogo | Implementado en código, no validado en operación | La base es Supabase; el panel no puede cargar los datos mientras persista el 401. |
 | Tiempo real y recuperación | Parcial | Hay Broadcast y sondeo periódico; falta comprobar sincronización en varios dispositivos. |
 | Cierre automático de rondas en Vercel | Riesgo de arquitectura | `instrumentation.ts` instala un intervalo de Node, pero las funciones serverless no garantizan un proceso persistente. La lectura pública cierra una ronda vencida si alguien consulta el estado; falta un mecanismo programado confiable para producción. |
-| Repositorio y despliegue repetible | Pendiente | La copia local no tiene remoto Git, vínculo `.vercel` ni CLI de Vercel disponible. Conectar esta copia a la instancia para publicar las correcciones. |
+| Repositorio y despliegue repetible | Parcial | El repositorio `gabarimba/radio-campus` ya está conectado a `origin/main`, y Vercel muestra la integración GitHub activa. El código se subió antes de conectar la integración; falta comprobar el primer build generado desde la rama. |
 | Evidencias integrales | Pendiente | Capturar la ronda completa, el rechazo de duplicado, las reglas contextuales, la reproducción y la locución una vez desbloqueada la operación. |
 
 ## Trabajo ya iniciado en la copia local
@@ -38,11 +38,11 @@ El `401` no se ha atribuido a una causa única. El rol de la cuenta ya fue compr
 - Administración obtiene una sesión actualizada y, ante un `401`, renueva el token una vez y reintenta la petición. La misma ruta protegida se usa para buscar en Jamendo y exportar respaldos.
 - La consulta de licencias Jamendo envía `include=licenses` y `include=musicinfo` como parámetros separados.
 - El reproductor público obtiene el enlace Creative Commons desde las notas de licencia y lo presenta junto al crédito de la pista. El cambio aún es local y requiere despliegue.
-- Los cambios locales todavía no están publicados en el enlace de Vercel.
+- Los cambios ya están publicados en GitHub `main`, pero todavía no se ha observado un despliegue de Vercel que los incluya.
 
 ## Siguientes pasos
 
-1. Publicar estos cambios en la instancia indicada y revisar si la renovación de sesión resuelve el `401`.
+1. Confirmar que Vercel complete un build desde el nuevo commit de `main` y revisar si la renovación de sesión resuelve el `401`.
 2. Si persiste, consultar en el servidor únicamente el tipo, estado y código del error de Auth (nunca el JWT) y comprobar las variables de entorno del deployment sin revelar sus valores.
 3. Sustituir el intervalo en memoria por un mecanismo programado confiable para Vercel, o desplegar la aplicación en un servicio Node persistente.
 4. Ejecutar el guion de [pruebas y demostración](pruebas-y-demostracion.md) con datos de prueba y más de un dispositivo.

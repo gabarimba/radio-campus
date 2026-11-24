@@ -6,7 +6,7 @@ Aplicación web en español para programar rondas musicales con reglas contextua
 
 El proyecto cuenta con una instancia publicada en [Vercel](https://sistema-radio-campus-lmxcp3hui-gab-628d.vercel.app). En la revisión del 21 de noviembre de 2026, la pantalla pública y la página de votación cargaron, pero no había ronda activa; Administración mostraba una sesión autenticada y sus endpoints respondían `401 No autorizado`. El perfil de esa cuenta aparece como `admin` y activo en Supabase. Por ello, la operación administrativa y la demostración completa siguen pendientes.
 
-El repositorio local no tiene remoto Git ni vínculo de proyecto Vercel configurado. Los cambios hechos aquí no se publican en la instancia hasta conectar el repositorio o desplegar una nueva versión por otro medio.
+La copia local está conectada a `github.com/gabarimba/radio-campus` y Vercel ya tiene GitHub conectado para este proyecto. El último push ocurrió antes de activar la integración; el siguiente commit en `main` debe generar el nuevo despliegue. Las correcciones no cuentan como publicadas hasta que Vercel marque ese despliegue como listo.
 
 ## Rutas
 
@@ -70,7 +70,7 @@ El flujo, el modelo de datos y los límites de confianza se describen en [Arquit
 - **Contexto:** se implementan clima, hora y eventos. El administrador puede crear reglas, pero los perfiles de energía deben asociarse con etiquetas existentes para cambiar el ranking. Si falla el clima, la temperatura queda `null` y el motor continúa.
 - **Tiempo real:** Broadcast acelera cambios; la consulta periódica (8 s en pantalla pública; 5 s en votación) permite recuperación. Debe verificarse en el proyecto Supabase y la instancia de producción.
 - **Administración incompleta:** se incluyen canciones, búsqueda e importación Jamendo, etiquetas, listas, reglas, eventos, anuncios, estadísticas básicas y control de cola. Edición avanzada de cada metadato y análisis por cohortes quedan pendientes.
-- **Despliegue:** la instancia de Vercel está publicada por HTTPS, pero esta copia local no está vinculada a un remoto Git ni a un proyecto Vercel. La administración en producción devuelve 401. Consultar [estado de aceptación](docs/estado-aceptacion.md) y el [manual de despliegue](docs/manual-instalacion.md).
+- **Despliegue:** la instancia de Vercel está publicada por HTTPS y quedó conectada al repositorio GitHub. El primer build desde la rama `main` sigue pendiente; la administración de la versión actual devuelve 401. Consultar [estado de aceptación](docs/estado-aceptacion.md) y el [manual de despliegue](docs/manual-instalacion.md).
 - **Validación publicada:** la última prueba de la instancia está documentada en [estado de aceptación](docs/estado-aceptacion.md). No hubo una ronda real porque la API administrativa devuelve 401 y no se inició una desde el panel.
 
 ## Documentación

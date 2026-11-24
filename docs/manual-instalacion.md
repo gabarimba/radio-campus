@@ -26,9 +26,9 @@
 
 ## C. Actualizar el proyecto publicado en Vercel
 
-La instancia compartida vive en Vercel. El proyecto existe en la cuenta, pero en la última revisión de su panel no tenía un repositorio Git conectado; por eso los cambios de esta carpeta no se publican automáticamente.
+La instancia compartida vive en Vercel. El proyecto ya está conectado a `gabarimba/radio-campus`; verifica que Vercel genere un deployment con cada nuevo commit de `main`.
 
-1. Publica esta carpeta en un repositorio Git privado de la universidad o de tu cuenta y conéctalo desde **Vercel → proyecto `sistema-radio-campus` → Settings → Git**.
+1. Confirma que el repositorio conectado sea `gabarimba/radio-campus` y que `main` sea la rama de producción.
 2. Configura `npm ci` como Build Command y `npm run build` como Build Step si los valores automáticos no se detectan. El start command lo gestiona Vercel.
 3. Configura las variables de `.env.example` en el entorno **Production** de Vercel. No subas `.env.local` ni compartas la clave `SUPABASE_SERVICE_ROLE_KEY`.
 4. Confirma el dominio HTTPS y registra el dominio final en Site URL y Redirect URLs de Supabase Auth.
