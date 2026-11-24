@@ -12,11 +12,14 @@ function clientId() {
 
 export async function buscarJamendo(params: { query?: string; id?: string; limit?: number }) {
   const url = new URL("https://api.jamendo.com/v3.0/tracks/");
-  url.search = new URLSearchParams({
-    client_id: clientId(), format: "json", include: "licenses,musicinfo",
+  const search = new URLSearchParams({
+    client_id: clientId(), format: "json",
     audioformat: "mp32", ccnc: "false", limit: String(params.limit ?? 20),
     ...(params.query ? { search: params.query } : {}), ...(params.id ? { id: params.id } : {}),
-  }).toString();
+  });
+  search.append("include", "licenses");
+  search.append("include", "musicinfo");
+  url.search = search.toString();
   const response = await fetch(url, { signal: AbortSignal.timeout(7000), cache: "no-store" });
   if (!response.ok) throw new Error(`Jamendo respondió ${response.status}.`);
   const body = await response.json() as { headers?: { status?: string; error_message?: string }; results?: JamendoTrack[] };
