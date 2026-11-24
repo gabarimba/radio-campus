@@ -38,12 +38,30 @@ export default function AdminPage() {
     return () => listener.subscription.unsubscribe();
   }, [supabaseConfigured]);
   const token = session?.access_token;
+  const authorizedFetch = useCallback(async (path: string, init?: RequestInit) => {
+    const supabase = supabaseBrowser();
+    const { data: current } = await supabase.auth.getSession();
+    const send = (accessToken: string | undefined) => fetch(path, {
+      ...init,
+      headers: { "Content-Type": "application/json", ...init?.headers, ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+    });
+    let response = await send(current.session?.access_token);
+    if (response.status !== 401) return response;
+
+    // Una sesión restaurada desde el navegador puede tener un access token vencido.
+    // Renovamos una vez y repetimos la solicitud antes de mostrar un error de acceso.
+    const { data: refreshed, error } = await supabase.auth.refreshSession();
+    if (error || !refreshed.session) return response;
+    setSession(refreshed.session);
+    response = await send(refreshed.session.access_token);
+    return response;
+  }, []);
   const api = useCallback(async (path: string, init?: RequestInit) => {
-    const response = await fetch(path, { ...init, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...init?.headers } });
+    const response = await authorizedFetch(path, init);
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error || "No se pudo completar la operación.");
     return body;
-  }, [token]);
+  }, [authorizedFetch]);
   const load = useCallback(async () => {
     if (!token) return;
     try { const [catalog, meta, tags, playlists, metrics] = await Promise.all([api("/api/admin/catalog"), api("/api/admin/config"), api("/api/admin/tags"), api("/api/admin/playlists"), api("/api/admin/stats")]); setSongs((catalog.songs ?? []) as Song[]); setData({ settings: (meta.settings ?? []) as Setting[], events: (meta.events ?? []) as AdminEvent[], announcements: (meta.announcements ?? []) as AdminAnnouncement[], rules: (meta.rules ?? []) as AdminRule[], tags: (tags.tags ?? []) as AdminTag[], playlists: (playlists.playlists ?? []) as AdminPlaylist[] }); setStats(metrics as AdminStats); setMessage(""); }
@@ -77,7 +95,7 @@ export default function AdminPage() {
   }
   async function searchJamendo(event: FormEvent) {
     event.preventDefault(); setBusy(true); setMessage("");
-    try { const response = await fetch(`/api/admin/jamendo?q=${encodeURIComponent(jamendoQuery)}`, { headers: { Authorization: `Bearer ${token}` } }); const body = await response.json(); if (!response.ok) throw new Error(body.error || "No se pudo buscar en Jamendo."); setJamendoTracks(body.tracks as JamendoChoice[]); }
+    try { const body = await api(`/api/admin/jamendo?q=${encodeURIComponent(jamendoQuery)}`); setJamendoTracks(body.tracks as JamendoChoice[]); }
     catch (error) { setMessage((error as Error).message); } finally { setBusy(false); }
   }
   async function importJamendoTrack(track: JamendoChoice) {
@@ -138,7 +156,7 @@ export default function AdminPage() {
     window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = "es-MX"; window.speechSynthesis.speak(utterance); setMessage("Reproduciendo vista previa con la voz del navegador.");
   }
   async function exportBackup() {
-    try { const response = await fetch("/api/admin/backup", { headers: { Authorization: `Bearer ${token}` } }); if (!response.ok) throw new Error("No se pudo exportar el respaldo."); const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = "radio-campus-respaldo.json"; link.click(); URL.revokeObjectURL(url); setMessage("Respaldo descargado."); }
+    try { const response = await authorizedFetch("/api/admin/backup"); if (!response.ok) throw new Error("No se pudo exportar el respaldo."); const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = "radio-campus-respaldo.json"; link.click(); URL.revokeObjectURL(url); setMessage("Respaldo descargado."); }
     catch (error) { setMessage((error as Error).message); }
   }
   async function importBackup(input: HTMLInputElement) {
