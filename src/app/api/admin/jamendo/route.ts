@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
   try {
     const track = (await buscarJamendo({ id: parsed.data.id, limit: 1 }))[0];
     if (!track) return NextResponse.json({ error: "No se encontró la pista." }, { status: 404 });
+    if (!permiteEmisionNoComercial(track.license_ccurl)) return NextResponse.json({ error: "La licencia de esta pista no es compatible con la selección." }, { status: 403 });
     const { data, error } = await supabaseAdmin().from("canciones").upsert({
       titulo: track.name, artista: track.artist_name, duracion_segundos: Number(track.duration),
       proveedor: "jamendo", id_proveedor: track.id,

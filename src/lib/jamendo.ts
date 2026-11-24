@@ -14,8 +14,8 @@ export async function buscarJamendo(params: { query?: string; id?: string; limit
   const url = new URL("https://api.jamendo.com/v3.0/tracks/");
   const search = new URLSearchParams({
     client_id: clientId(), format: "json",
-    audioformat: "mp32", ccnc: "false", limit: String(params.limit ?? 20),
-    ...(params.query ? { search: params.query } : {}), ...(params.id ? { id: params.id } : {}),
+    audioformat: "mp32", type: "single albumtrack", limit: String(params.limit ?? 20),
+    ...(params.query ? { search: params.query, ccnc: "false" } : {}), ...(params.id ? { id: params.id } : {}),
   });
   search.append("include", "licenses");
   search.append("include", "musicinfo");
@@ -25,6 +25,20 @@ export async function buscarJamendo(params: { query?: string; id?: string; limit
   const body = await response.json() as { headers?: { status?: string; error_message?: string }; results?: JamendoTrack[] };
   if (body.headers?.status !== "success") throw new Error(body.headers?.error_message || "La búsqueda en Jamendo falló.");
   return body.results ?? [];
+}
+
+export async function resolverStreamJamendo(id: string) {
+  if (!/^\d{1,12}$/.test(id)) throw new Error("Identificador Jamendo inválido.");
+  const url = new URL("https://api.jamendo.com/v3.0/tracks/file/");
+  url.search = new URLSearchParams({
+    client_id: clientId(), id, audioformat: "mp32", action: "stream",
+  }).toString();
+  const response = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(7000), cache: "no-store" });
+  const location = response.headers.get("location");
+  if (response.status < 300 || response.status >= 400 || !location) throw new Error("Jamendo no pudo resolver el stream de esta pista.");
+  const streamUrl = new URL(location, url);
+  if (!streamUrl.hostname.endsWith(".storage.jamendo.com")) throw new Error("Jamendo devolvió un destino de stream no válido.");
+  return streamUrl.toString();
 }
 
 /** Solo licencia CC con BY y sin condición NC; cada alta requiere revisión institucional. */

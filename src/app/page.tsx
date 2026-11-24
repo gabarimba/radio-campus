@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import Image from "next/image";
 import Link from "next/link";
+import { getVotingUrl } from "@/lib/public-url";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 type RoundState = { id: string; status: string; closesAt: string | null; winnerId: string | null; result: { votos_total?: number; empate?: boolean; sin_votos?: boolean }; choices: { id: string; titulo: string; artista: string; position: number; votes: number }[] };
@@ -32,7 +33,8 @@ export default function PublicScreen() {
   }, []);
   useEffect(() => {
     if (state?.round?.status === "abierta" && state.round.id && typeof window !== "undefined") {
-      void QRCode.toDataURL(`${window.location.origin}/votar?r=${state.round.id}`, { width: 220, margin: 1 }).then(setQr).catch(() => setQr(""));
+      const votingUrl = getVotingUrl(window.location.origin, state.round.id, process.env.NEXT_PUBLIC_SITE_URL);
+      void QRCode.toDataURL(votingUrl, { width: 220, margin: 1 }).then(setQr).catch(() => setQr(""));
     }
   }, [state?.round?.id, state?.round?.status]);
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function PublicScreen() {
       <section className="grid">
         <article className="card current"><div><div className="status"><span className={`dot ${currentSong ? "" : "off"}`}></span>{currentSong ? "JAMENDO · REPRODUCCIÓN DISPONIBLE" : "ESPERANDO CANCIÓN AUTORIZADA"}</div>
           <h2 className="track-title">{current ? current.titulo : "Radio Campus"}</h2><div className="meta">{current ? current.artista : "Las canciones se cargan desde el catálogo con licencia verificada."}</div>
-          {currentSong && <div style={{marginTop:20,display:"grid",gap:10}}><audio key={currentSong.queueId} ref={audioRef} controls preload="none" src={currentSong.streamUrl} onPlay={() => { setRadioStarted(true); void reportPlayback("iniciada"); }} onEnded={() => void finishTrack()} onError={() => { void reportPlayback("fallida"); setRadioStarted(false); void refresh(); }}/><div className="msg">Transmisión oficial de Jamendo · <a href={currentSong.attributionUrl ?? `https://www.jamendo.com/track/${currentSong.id_proveedor}`} target="_blank" rel="noreferrer">Abrir pista y artista</a>{currentSong.licenseUrl && <> · <a href={currentSong.licenseUrl} target="_blank" rel="noreferrer">Ver licencia Creative Commons</a></>} · <a href="https://www.jamendo.com" target="_blank" rel="noreferrer">Jamendo</a></div></div>}
+          {currentSong && <div style={{marginTop:20,display:"grid",gap:10}}><audio key={currentSong.queueId} ref={audioRef} controls preload="none" src={currentSong.streamUrl} onPlay={() => { setRadioStarted(true); void reportPlayback("iniciada"); }} onEnded={() => void finishTrack()} onError={() => { void reportPlayback("fallida"); setRadioStarted(false); void refresh(); }}/><div className="msg">Pulsa ▶ para escuchar en este dispositivo. · Transmisión oficial de Jamendo · <a href={currentSong.attributionUrl ?? `https://www.jamendo.com/track/${currentSong.id_proveedor}`} target="_blank" rel="noreferrer">Abrir pista y artista</a>{currentSong.licenseUrl && <> · <a href={currentSong.licenseUrl} target="_blank" rel="noreferrer">Ver licencia Creative Commons</a></>} · <a href="https://www.jamendo.com" target="_blank" rel="noreferrer">Jamendo</a></div></div>}
           </div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"end",gap:12}}><span className="badge">{round?.status === "abierta" ? "Votación abierta" : round?.status === "cerrada" ? "Último resultado" : "En espera de programación"}</span>{round?.status === "abierta" && <div><div className="eyebrow">Cierra en</div><div className="timer">{String(Math.floor(left/60)).padStart(2,"0")}:{String(left%60).padStart(2,"0")}</div></div>}</div>
         </article>
