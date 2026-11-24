@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { extraerLicenciaCreativeCommons } from "@/lib/licencias";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
@@ -6,14 +7,17 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const db = supabaseAdmin();
-    const playbackQuery = (status: "reproduciendo" | "pendiente") => db.from("cola_reproduccion").select("id,estado,tipo,canciones(id,titulo,artista,duracion_segundos,proveedor,id_proveedor,url_proveedor)").eq("estado", status).eq("tipo", "cancion").order("posicion", { ascending: true }).limit(1).maybeSingle();
+    const playbackQuery = (status: "reproduciendo" | "pendiente") => db.from("cola_reproduccion").select("id,estado,tipo,canciones(id,titulo,artista,duracion_segundos,proveedor,id_proveedor,url_proveedor,notas_derechos)").eq("estado", status).eq("tipo", "cancion").order("posicion", { ascending: true }).limit(1).maybeSingle();
     const { data: playing } = await playbackQuery("reproduciendo");
     const { data: queued } = playing ? { data: null } : await playbackQuery("pendiente");
     const currentQueue = playing ?? queued;
-    type PublicSong = { id: string; titulo: string; artista: string; duracion_segundos: number | null; proveedor: string | null; id_proveedor: string | null; url_proveedor: string | null };
+    type PublicSong = { id: string; titulo: string; artista: string; duracion_segundos: number | null; proveedor: string | null; id_proveedor: string | null; url_proveedor: string | null; notas_derechos: string | null };
     const currentRow = currentQueue as unknown as { id: string; estado: string; canciones: PublicSong | PublicSong[] | null } | null;
     const currentSong = Array.isArray(currentRow?.canciones) ? currentRow.canciones[0] : currentRow?.canciones;
-    const current = currentSong && currentSong.proveedor === "jamendo" ? { queueId: currentRow?.id, queueStatus: currentRow?.estado, ...currentSong, streamUrl: `/api/public/audio?track=${encodeURIComponent(currentSong.id_proveedor ?? "")}`, attributionUrl: currentSong.url_proveedor } : null;
+    const current = currentSong && currentSong.proveedor === "jamendo" ? (() => {
+      const { notas_derechos, ...song } = currentSong;
+      return { queueId: currentRow?.id, queueStatus: currentRow?.estado, ...song, licenseUrl: extraerLicenciaCreativeCommons(notas_derechos), streamUrl: `/api/public/audio?track=${encodeURIComponent(currentSong.id_proveedor ?? "")}`, attributionUrl: currentSong.url_proveedor };
+    })() : null;
     const { data: active } = await db.from("rondas").select("*").eq("estado", "abierta").order("creada_en", { ascending: false }).limit(1).maybeSingle();
     if (active && Date.now() >= new Date(active.cierra_en).getTime()) await db.rpc("cerrar_ronda_vencida", { p_ronda: active.id });
     const { data: round } = active && Date.now() < new Date(active.cierra_en).getTime()
