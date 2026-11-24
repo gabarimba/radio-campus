@@ -4,17 +4,18 @@
 
 1. Crea un proyecto Supabase en la región conveniente para el campus.
 2. Ejecuta el archivo `supabase/migrations/202611190001_esquema_inicial.sql` en SQL Editor. Conserva el archivo como migración reproducible.
-3. En Authentication, crea un usuario administrador y configura los URL de sitio/retorno para desarrollo y producción.
-4. Inserta el perfil con SQL, sustituyendo el UUID del usuario:
+3. Ejecuta `supabase/migrations/202611240001_permisos_service_role.sql` en SQL Editor. La API de servidor usa `service_role`; esta migración le concede los permisos SQL sobre las tablas y secuencias de `public` que utiliza.
+4. En Authentication, crea un usuario administrador y configura los URL de sitio/retorno para desarrollo y producción.
+5. Inserta el perfil con SQL, sustituyendo el UUID del usuario:
 
    ```sql
    insert into public.perfiles_admin (id, nombre, rol, activo)
    values ('UUID_DEL_USUARIO_AUTH', 'Administración Radio Campus', 'admin', true);
    ```
 
-5. En Database → Publications, habilita broadcast según la configuración del proyecto. La app envía eventos por canal Realtime `radio-publica`; confirma que clientes públicos puedan suscribirse a Broadcast.
-6. Copia Project URL y la clave pública. Copia `service_role` solo en el entorno servidor.
-7. Registra una aplicación Jamendo API v3 de solo lectura en [Jamendo for Developers](https://devportal.jamendo.com/) y configura su Client ID como `JAMENDO_CLIENT_ID`.
+6. En Database → Publications, habilita broadcast según la configuración del proyecto. La app envía eventos por canal Realtime `radio-publica`; confirma que clientes públicos puedan suscribirse a Broadcast.
+7. Copia Project URL y la clave pública. Copia `service_role` solo en el entorno servidor.
+8. Registra una aplicación Jamendo API v3 de solo lectura en [Jamendo for Developers](https://devportal.jamendo.com/) y configura su Client ID como `JAMENDO_CLIENT_ID`.
 
 ## B. Ejecutar en local
 
@@ -32,7 +33,7 @@ La instancia compartida vive en Vercel. El proyecto ya está conectado a `gabari
 2. Configura `npm ci` como Build Command y `npm run build` como Build Step si los valores automáticos no se detectan. El start command lo gestiona Vercel.
 3. Configura las variables de `.env.example` en el entorno **Production** de Vercel. No subas `.env.local` ni compartas la clave `SUPABASE_SERVICE_ROLE_KEY`.
 4. Confirma el dominio HTTPS y registra el dominio final en Site URL y Redirect URLs de Supabase Auth.
-5. Tras desplegar, revisa el catálogo en `/admin`. Si persiste `401 No autorizado`, revisa los registros del servidor y confirma que sesión, perfil y variables apunten al mismo proyecto Supabase.
+5. Tras desplegar, revisa el catálogo en `/admin`. Si persiste `401 No autorizado`, revisa los registros del servidor y confirma que sesión, perfil y variables apunten al mismo proyecto Supabase. Si los registros muestran `permission denied for table perfiles_admin`, aplica la migración `202611240001_permisos_service_role.sql` en SQL Editor de Supabase.
 6. No dependas de `setInterval` en `src/instrumentation.ts` para el cierre en Vercel: las funciones serverless no son un proceso persistente. Configura un mecanismo programado compatible con el plan actual o usa el servicio Node persistente descrito abajo.
 7. Solo después de recuperar Administración, prueba desde dos dispositivos en redes distintas: abrir ronda, votar, rechazar repetición, observar cierre, refrescar y consultar resultado.
 
