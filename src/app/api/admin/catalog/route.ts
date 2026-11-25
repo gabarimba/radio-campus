@@ -3,7 +3,9 @@ import { z } from "zod";
 import { getAdmin } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-const songSchema = z.object({ titulo: z.string().trim().min(1).max(160), artista: z.string().trim().min(1).max(160), album: z.string().trim().max(160).optional(), duracion_segundos: z.number().int().positive().optional(), proveedor: z.string().trim().max(40).optional(), id_proveedor: z.string().trim().max(200).optional(), url_proveedor: z.string().url().optional().or(z.literal("")), autorizacion_verificada: z.boolean().default(false), notas_derechos: z.string().max(1000).optional(), autorizada: z.boolean().default(false), explicita: z.boolean().default(false), prioridad: z.number().int().min(-100).max(100).default(0), activa: z.boolean().default(true), etiquetas: z.array(z.object({ categoria: z.enum(["genero", "energia", "ambiente", "tematica", "restriccion"]), nombre: z.string().trim().min(1).max(60) })).max(20).default([]) }).refine((song) => !song.autorizada || song.autorizacion_verificada, { message: "Para habilitar una canción debe verificarse su autorización." });
+const songFieldsSchema = z.object({ titulo: z.string().trim().min(1).max(160), artista: z.string().trim().min(1).max(160), album: z.string().trim().max(160).optional(), duracion_segundos: z.number().int().positive().optional(), proveedor: z.string().trim().max(40).optional(), id_proveedor: z.string().trim().max(200).optional(), url_proveedor: z.string().url().optional().or(z.literal("")), autorizacion_verificada: z.boolean().default(false), notas_derechos: z.string().max(1000).optional(), autorizada: z.boolean().default(false), explicita: z.boolean().default(false), prioridad: z.number().int().min(-100).max(100).default(0), activa: z.boolean().default(true), etiquetas: z.array(z.object({ categoria: z.enum(["genero", "energia", "ambiente", "tematica", "restriccion"]), nombre: z.string().trim().min(1).max(60) })).max(20).default([]) });
+const songSchema = songFieldsSchema.refine((song) => !song.autorizada || song.autorizacion_verificada, { message: "Para habilitar una canción debe verificarse su autorización." });
+const songPatchSchema = songFieldsSchema.partial().refine((song) => song.autorizada !== true || song.autorizacion_verificada === true, { message: "Para habilitar una canción debe verificarse su autorización." });
 
 async function saveTags(songId: string, tags: { categoria: string; nombre: string }[], replace: boolean) {
   const db = supabaseAdmin();
@@ -43,7 +45,7 @@ export async function PATCH(request: NextRequest) {
   if (!admin) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   const body = await request.json().catch(() => null) as { id?: string; changes?: Record<string, unknown> } | null;
   if (!body?.id || !z.string().uuid().safeParse(body.id).success || !body.changes) return NextResponse.json({ error: "Falta un identificador y cambios válidos." }, { status: 400 });
-  const parsed = songSchema.partial().safeParse(body.changes);
+  const parsed = songPatchSchema.safeParse(body.changes);
   if (!parsed.success) return NextResponse.json({ error: "Hay cambios inválidos." }, { status: 400 });
   if (parsed.data.autorizada === true) {
     const { data: current } = await supabaseAdmin().from("canciones").select("proveedor").eq("id", body.id).maybeSingle();
