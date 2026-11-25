@@ -18,12 +18,22 @@ export async function GET() {
       const { notas_derechos, ...song } = currentSong;
       return { queueId: currentRow?.id, queueStatus: currentRow?.estado, ...song, licenseUrl: extraerLicenciaCreativeCommons(notas_derechos), streamUrl: `/api/public/audio?track=${encodeURIComponent(currentSong.id_proveedor ?? "")}`, attributionUrl: currentSong.url_proveedor };
     })() : null;
+    const now = new Date().toISOString();
+    const { data: announcementRows, error: announcementsError } = await db.from("anuncios")
+      .select("id,titulo,texto,inicia_en")
+      .eq("estado", "aprobado")
+      .lte("inicia_en", now)
+      .gt("termina_en", now)
+      .order("inicia_en", { ascending: false })
+      .limit(5);
+    if (announcementsError) console.error("No se pudieron consultar los avisos públicos:", announcementsError.message);
+    const announcements = (announcementRows ?? []).map(({ id, titulo, texto, inicia_en }) => ({ id, titulo, texto, iniciaEn: inicia_en }));
     const { data: active } = await db.from("rondas").select("*").eq("estado", "abierta").order("creada_en", { ascending: false }).limit(1).maybeSingle();
     if (active && Date.now() >= new Date(active.cierra_en).getTime()) await db.rpc("cerrar_ronda_vencida", { p_ronda: active.id });
     const { data: round } = active && Date.now() < new Date(active.cierra_en).getTime()
       ? { data: active }
       : await db.from("rondas").select("*").in("estado", ["cerrada", "abierta"]).order("creada_en", { ascending: false }).limit(1).maybeSingle();
-    if (!round) return NextResponse.json({ serverTime: new Date().toISOString(), round: null, playback: { state: current ? "listo" : "espera", message: current ? "Reproducción Jamendo disponible; inicia el audio en el reproductor principal." : "Esperando una ronda ganadora." , current } });
+    if (!round) return NextResponse.json({ serverTime: new Date().toISOString(), round: null, announcements, playback: { state: current ? "listo" : "espera", message: current ? "Reproducción Jamendo disponible; inicia el audio en el reproductor principal." : "Esperando una ronda ganadora." , current } });
     const [{ data: choices }, { data: votes }] = await Promise.all([
       db.from("candidatas_ronda").select("posicion,puntuacion,razones,canciones(id,titulo,artista,duracion_segundos,proveedor,id_proveedor,url_proveedor)").eq("ronda_id", round.id).order("posicion"),
       db.from("votos").select("cancion_id").eq("ronda_id", round.id),
@@ -38,6 +48,7 @@ export async function GET() {
     });
     return NextResponse.json({
       serverTime: new Date().toISOString(),
+      announcements,
       round: { id: round.id, status: round.estado, startsAt: round.inicia_en, closesAt: round.cierra_en, winnerId: round.ganador_id, result: round.resultado,
         choices: publicChoices },
       playback: { state: current ? "listo" : "espera", message: current ? "Jamendo · stream por API oficial; pulsa reproducir en el equipo de radio." : "La radio espera la siguiente canción autorizada.", current },

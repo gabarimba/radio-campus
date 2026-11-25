@@ -8,7 +8,15 @@ import { getVotingUrl } from "@/lib/public-url";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 type RoundState = { id: string; status: string; closesAt: string | null; winnerId: string | null; result: { votos_total?: number; empate?: boolean; sin_votos?: boolean }; choices: { id: string; titulo: string; artista: string; position: number; votes: number }[] };
-type State = { serverTime: string; round: RoundState | null; playback: { state: string; message: string; current: { queueId: string; queueStatus: string; id: string; titulo: string; artista: string; proveedor: string; id_proveedor: string; streamUrl: string; attributionUrl: string | null; licenseUrl: string | null } | null } };
+type Announcement = { id: string; titulo: string; texto: string; iniciaEn: string };
+type State = { serverTime: string; round: RoundState | null; announcements: Announcement[]; playback: { state: string; message: string; current: { queueId: string; queueStatus: string; id: string; titulo: string; artista: string; proveedor: string; id_proveedor: string; duracion_segundos: number | null; streamUrl: string; attributionUrl: string | null; licenseUrl: string | null } | null } };
+
+function formatPlaybackTime(value: number) {
+  if (!Number.isFinite(value) || value < 0) return "0:00";
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.floor(value % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
 
 export default function PublicScreen() {
   const [state, setState] = useState<State | null>(null);
@@ -16,6 +24,8 @@ export default function PublicScreen() {
   const [qr, setQr] = useState("");
   const [left, setLeft] = useState(0);
   const [radioStarted, setRadioStarted] = useState(false);
+  const [playingQueueId, setPlayingQueueId] = useState<string | null>(null);
+  const [playerProgress, setPlayerProgress] = useState({ queueId: "", currentTime: 0, duration: 0 });
   const audioRef = useRef<HTMLAudioElement>(null);
 
   async function refresh() {
@@ -42,6 +52,10 @@ export default function PublicScreen() {
     tick(); const id = setInterval(tick, 500); return () => clearInterval(id);
   }, [state?.round?.closesAt, state?.round?.status]);
   const currentSong = state?.playback.current ?? null;
+  const isPlaying = Boolean(currentSong?.queueId && playingQueueId === currentSong.queueId);
+  const progressMatchesCurrentSong = Boolean(currentSong?.queueId && playerProgress.queueId === currentSong.queueId);
+  const playerTime = progressMatchesCurrentSong ? playerProgress.currentTime : 0;
+  const playerDuration = progressMatchesCurrentSong ? playerProgress.duration : currentSong?.duracion_segundos ?? 0;
   useEffect(() => {
     if (!radioStarted || !currentSong?.queueId || !audioRef.current) return;
     void audioRef.current.play().catch(() => setRadioStarted(false));
@@ -75,7 +89,50 @@ export default function PublicScreen() {
       <section className="grid">
         <article className="card current"><div><div className="status"><span className={`dot ${currentSong ? "" : "off"}`}></span>{currentSong ? "JAMENDO · REPRODUCCIÓN DISPONIBLE" : "ESPERANDO CANCIÓN AUTORIZADA"}</div>
           <h2 className="track-title">{current ? current.titulo : "Radio Campus"}</h2><div className="meta">{current ? current.artista : "Las canciones se cargan desde el catálogo con licencia verificada."}</div>
-          {currentSong && <div style={{marginTop:20,display:"grid",gap:10}}><audio key={currentSong.queueId} ref={audioRef} controls preload="none" src={currentSong.streamUrl} onPlay={() => { setRadioStarted(true); void reportPlayback("iniciada"); }} onEnded={() => void finishTrack()} onError={() => { void reportPlayback("fallida"); setRadioStarted(false); void refresh(); }}/><div className="msg">Pulsa ▶ para escuchar en este dispositivo. · Transmisión oficial de Jamendo · <a href={currentSong.attributionUrl ?? `https://www.jamendo.com/track/${currentSong.id_proveedor}`} target="_blank" rel="noreferrer">Abrir pista y artista</a>{currentSong.licenseUrl && <> · <a href={currentSong.licenseUrl} target="_blank" rel="noreferrer">Ver licencia Creative Commons</a></>} · <a href="https://www.jamendo.com" target="_blank" rel="noreferrer">Jamendo</a></div></div>}
+          {currentSong && <div className="player-shell">
+            <audio className="player-source" key={currentSong.queueId} ref={audioRef} preload="none" src={currentSong.streamUrl}
+              onPlay={() => { setPlayingQueueId(currentSong.queueId); setRadioStarted(true); void reportPlayback("iniciada"); }}
+              onPause={() => setPlayingQueueId((playing) => playing === currentSong.queueId ? null : playing)}
+              onLoadedMetadata={(event) => {
+                const currentTime = event.currentTarget.currentTime;
+                const duration = Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : currentSong.duracion_segundos ?? 0;
+                setPlayerProgress((previous) => ({ queueId: currentSong.queueId, currentTime: previous.queueId === currentSong.queueId ? previous.currentTime : currentTime, duration }));
+              }}
+              onDurationChange={(event) => {
+                const currentTime = event.currentTarget.currentTime;
+                const duration = Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : currentSong.duracion_segundos ?? 0;
+                setPlayerProgress((previous) => ({ queueId: currentSong.queueId, currentTime: previous.queueId === currentSong.queueId ? previous.currentTime : currentTime, duration }));
+              }}
+              onTimeUpdate={(event) => setPlayerProgress({ queueId: currentSong.queueId, currentTime: event.currentTarget.currentTime, duration: Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : currentSong.duracion_segundos ?? 0 })}
+              onEnded={() => { setPlayingQueueId((playing) => playing === currentSong.queueId ? null : playing); void finishTrack(); }}
+              onError={() => { setPlayingQueueId((playing) => playing === currentSong.queueId ? null : playing); void reportPlayback("fallida"); setRadioStarted(false); void refresh(); }} />
+            <div className="player-top">
+              <div className="player-cover" aria-hidden="true"><span>♫</span><i /></div>
+              <div className="player-caption"><span className="eyebrow">SONANDO AHORA</span><strong>Radio Campus</strong><small>Jamendo · transmisión oficial</small></div>
+              <button className="player-toggle" type="button" aria-label={isPlaying ? "Pausar canción" : "Reproducir canción"} aria-pressed={isPlaying} onClick={() => {
+                const audio = audioRef.current;
+                if (!audio) return;
+                if (audio.paused) void audio.play().catch(() => { setRadioStarted(false); });
+                else { setRadioStarted(false); audio.pause(); }
+              }}>
+                {isPlaying ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 12 7-12 7z" /></svg>}
+              </button>
+            </div>
+            <div className="player-timeline">
+              <span>{formatPlaybackTime(playerTime)}</span>
+              <input aria-label="Posición de la canción" className="player-progress" type="range" min="0" max={Math.max(playerDuration || currentSong.duracion_segundos || 1, 1)} step="1" value={Math.min(playerTime, playerDuration || currentSong.duracion_segundos || 1)} onChange={(event) => {
+                const time = Number(event.currentTarget.value);
+                if (audioRef.current) audioRef.current.currentTime = time;
+                setPlayerProgress({ queueId: currentSong.queueId, currentTime: time, duration: playerDuration });
+              }} />
+              <span>{formatPlaybackTime(playerDuration || currentSong.duracion_segundos || 0)}</span>
+            </div>
+            <div className="player-footer">
+              <div className={`player-live ${isPlaying ? "is-playing" : ""}`} aria-live="polite"><span className="player-wave" aria-hidden="true"><i /><i /><i /><i /></span>{isPlaying ? "EN REPRODUCCIÓN" : "LISTO PARA REPRODUCIR"}</div>
+              <span className="player-quality">MP3 · JAMENDO</span>
+            </div>
+            <div className="msg player-links">Pulsa reproducir para escuchar. · <a href={currentSong.attributionUrl ?? `https://www.jamendo.com/track/${currentSong.id_proveedor}`} target="_blank" rel="noreferrer">Abrir pista y artista</a>{currentSong.licenseUrl && <> · <a href={currentSong.licenseUrl} target="_blank" rel="noreferrer">Ver licencia Creative Commons</a></>} · <a href="https://www.jamendo.com" target="_blank" rel="noreferrer">Jamendo</a></div>
+          </div>}
           </div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"end",gap:12}}><span className="badge">{round?.status === "abierta" ? "Votación abierta" : round?.status === "cerrada" ? "Último resultado" : "En espera de programación"}</span>{round?.status === "abierta" && <div><div className="eyebrow">Cierra en</div><div className="timer">{String(Math.floor(left/60)).padStart(2,"0")}:{String(left%60).padStart(2,"0")}</div></div>}</div>
         </article>
@@ -84,6 +141,10 @@ export default function PublicScreen() {
           {round?.status === "cerrada" && <div className="banner">{round.result.sin_votos ? "No hubo votos; se aplicó la regla configurada." : round.result.empate ? "Hubo empate; se aplicó la regla de desempate." : "Ganadora de la votación."}</div>}
           {round?.status === "abierta" && <div className="qr-card"><div className="qr-box">{qr && <Image src={qr} alt="Código QR para abrir la votación" width={90} height={90} unoptimized/>}</div><p>Escanea el QR con la cámara del celular y elige una canción. La ronda cierra en el servidor.</p></div>}
         </article>
+      </section>
+      <section className="notice-board" aria-labelledby="notice-heading">
+        <div className="notice-header"><div><div className="eyebrow">COMUNICADOS</div><h2 id="notice-heading">Avisos del campus</h2></div><span className="notice-count">{state?.announcements.length ?? 0} {(state?.announcements.length ?? 0) === 1 ? "AVISO ACTIVO" : "AVISOS ACTIVOS"}</span></div>
+        {state?.announcements.length ? <div className="notice-list">{state.announcements.map((announcement) => <article className="notice-item" key={announcement.id}><div className="notice-item-top"><span className="notice-indicator" aria-hidden="true" /><time dateTime={announcement.iniciaEn}>VIGENTE DESDE {new Date(announcement.iniciaEn).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}</time></div><h3>{announcement.titulo}</h3><p>{announcement.texto}</p></article>)}</div> : <p className="notice-empty">No hay avisos activos por el momento.</p>}
       </section>
       <div className="banner"><b>Estado de reproducción:</b> {connectionError || state?.playback.message || "Conectando con el servidor…"}</div>
       <footer className="footer"><span>Radio Campus · Sistema universitario participativo</span><span>Conexión: {connectionError ? "sin conexión al servidor" : state ? "consultando programación" : "reconectando"} · El cierre de ronda lo decide el servidor</span></footer>
