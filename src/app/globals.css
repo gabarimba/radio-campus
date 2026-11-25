@@ -45,6 +45,7 @@
 .notice-item h3{margin:10px 0 6px;font-size:15px;letter-spacing:-.02em}
 .notice-item p,.notice-empty{margin:0;color:var(--suave);font-size:12px;line-height:1.65;white-space:pre-line}
 .notice-empty{padding:16px 18px;border:1px dashed #ffffff1a;border-radius:12px;background:#0e151c66}
+.candidate.winner{border-color:#a8f06b66;background:linear-gradient(105deg,#1c2c21,#101720)}
 @keyframes player-wave{from{height:4px}to{height:13px}}
 @media(max-width:760px){.player-shell{margin-top:18px;padding:15px}.player-cover{width:48px;height:48px;border-radius:14px}.player-toggle{width:44px;height:44px}.player-timeline{grid-template-columns:34px minmax(0,1fr) 34px;gap:8px;margin-top:17px}.player-footer{font-size:8px}.notice-board{padding:19px}.notice-header h2{font-size:18px}.notice-list{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.player-live.is-playing .player-wave i{animation:none;height:8px}.player-toggle{transition:none}}

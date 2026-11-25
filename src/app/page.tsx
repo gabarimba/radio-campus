@@ -42,11 +42,11 @@ export default function PublicScreen() {
     return () => { clearTimeout(initial); clearInterval(id); if (channel) void supabaseBrowser().removeChannel(channel); };
   }, []);
   useEffect(() => {
-    if (state?.round?.status === "abierta" && state.round.id && typeof window !== "undefined") {
-      const votingUrl = getVotingUrl(window.location.origin, state.round.id, process.env.NEXT_PUBLIC_SITE_URL);
+    if (typeof window !== "undefined") {
+      const votingUrl = getVotingUrl(window.location.origin, process.env.NEXT_PUBLIC_SITE_URL);
       void QRCode.toDataURL(votingUrl, { width: 220, margin: 1 }).then(setQr).catch(() => setQr(""));
     }
-  }, [state?.round?.id, state?.round?.status]);
+  }, []);
   useEffect(() => {
     const tick = () => setLeft(state?.round?.status === "abierta" && state.round.closesAt ? Math.max(0, Math.ceil((new Date(state.round.closesAt).getTime() - Date.now()) / 1000)) : 0);
     tick(); const id = setInterval(tick, 500); return () => clearInterval(id);
@@ -139,7 +139,7 @@ export default function PublicScreen() {
         <article className="card"><div className="section-title"><h2>{round?.status === "cerrada" ? "Resultado de la ronda" : "Vota por la siguiente"}</h2><span className="pill">{round?.status === "abierta" ? "EN VIVO" : "CAMPUS"}</span></div>
           {round?.choices?.length ? <div className="candidate-list">{round.choices.map((choice) => <div className="candidate" key={choice.id}><div><strong>{choice.titulo}</strong><small>{choice.artista}</small></div><span className="vote-count">{round.status === "abierta" ? `${choice.votes} votos` : `${choice.votes} votos`}</span></div>)}</div> : <p className="msg">Las dos opciones aparecerán aquí cuando un administrador inicie una ronda con canciones autorizadas.</p>}
           {round?.status === "cerrada" && <div className="banner">{round.result.sin_votos ? "No hubo votos; se aplicó la regla configurada." : round.result.empate ? "Hubo empate; se aplicó la regla de desempate." : "Ganadora de la votación."}</div>}
-          {round?.status === "abierta" && <div className="qr-card"><div className="qr-box">{qr && <Image src={qr} alt="Código QR para abrir la votación" width={90} height={90} unoptimized/>}</div><p>Escanea el QR con la cámara del celular y elige una canción. La ronda cierra en el servidor.</p></div>}
+          {qr && <div className="qr-card"><div className="qr-box"><Image src={qr} alt="Código QR permanente para abrir la votación" width={90} height={90} unoptimized/></div><p>{round?.status === "abierta" ? "Escanea este código permanente para votar en la ronda activa." : "Este código permanece igual. Al escanearlo abrirás la votación activa cuando haya una ronda."}</p></div>}
         </article>
       </section>
       <section className="notice-board" aria-labelledby="notice-heading">

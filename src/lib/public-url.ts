@@ -17,8 +17,6 @@ export function getPublicSiteOrigin(currentOrigin: string, configuredSiteUrl?: s
   }
 }
 
-export function getVotingUrl(currentOrigin: string, roundId: string, configuredSiteUrl?: string) {
-  const url = new URL("/votar", getPublicSiteOrigin(currentOrigin, configuredSiteUrl));
-  url.searchParams.set("r", roundId);
-  return url.toString();
+export function getVotingUrl(currentOrigin: string, configuredSiteUrl?: string) {
+  return new URL("/votar", getPublicSiteOrigin(currentOrigin, configuredSiteUrl)).toString();
 }
